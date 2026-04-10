@@ -54,14 +54,46 @@
 }
 
 /* Drink details */
-.d-name { font-weight: 600; font-size: 1.1rem; color: #fff; }
-.d-price { color: var(--text); font-weight: 700; margin-top: 4px; display: block; }
-.d-brand { color: var(--text-muted); font-size: 0.85rem; }
-.d-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
-.badge { font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; font-weight: 600; }
-.badge.qty { background: var(--surface-hover); color: var(--text-muted); }
-.badge.low { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
-.badge.out { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+.card-btn.drink-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+}
+
+.card-btn.drink-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.85) 100%);
+    z-index: 1;
+    transition: background 0.2s;
+}
+
+.card-btn.drink-card:hover::before {
+    background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.9) 100%);
+}
+
+.card-btn.drink-card > * {
+    position: relative;
+    z-index: 2;
+}
+
+.d-name { font-weight: 700; font-size: 1.2rem; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+.d-price { color: var(--primary); font-weight: 800; font-size: 1.1rem; margin-top: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+.d-brand { color: rgba(255, 255, 255, 0.7); font-size: 0.85rem; font-weight: 500; }
+.d-meta { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
+.badge { font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; font-weight: 700; text-transform: uppercase; }
+.badge.qty { background: rgba(255, 255, 255, 0.15); color: #fff; backdrop-filter: blur(4px); }
+.badge.low { background: rgba(245, 158, 11, 0.9); color: #000; }
+.badge.out { background: rgba(239, 68, 68, 0.9); color: #fff; }
 
 /* Form */
 .input-group { display: flex; flex-direction: column; gap: 8px; }

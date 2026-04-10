@@ -124,9 +124,12 @@
 
         function renderDrinks() {
             const container = document.getElementById('drinks');
-            container.innerHTML = state.drinks.map((d, i) => `
-                <button class="card-btn fade-in ${state.selectedDrink?.id === d.id ? 'active' : ''}"
-                     style="animation-delay: ${i * 0.05}s"
+            container.innerHTML = state.drinks.map((d, i) => {
+                const imgName = d.name.toLowerCase().split(' ')[0].replace(/[^a-z0-9]/g, '');
+                const bgImage = `/images/drinks/${imgName}.jpg`;
+                return `
+                <button class="card-btn drink-card fade-in ${state.selectedDrink?.id === d.id ? 'active' : ''}"
+                     style="animation-delay: ${i * 0.05}s; background-image: url('${bgImage}')"
                      ${d.quantity === 0 ? 'disabled' : ''}
                      onclick="selectDrink(${d.id})">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -142,7 +145,8 @@
                         ${d.quantity === 0 ? '<span class="badge out">OUT</span>' : ''}
                     </div>
                 </button>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function selectDrink(id) {
