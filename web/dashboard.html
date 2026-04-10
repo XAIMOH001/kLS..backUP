@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — Drinks POS</title>
+    <link rel="stylesheet" href="/global.css">
+    <link rel="stylesheet" href="/dashboard.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">Drinks POS</div>
+        <div class="nav">
+            <div class="nav-item active" onclick="switchPanel('overview')">Overview</div>
+            <div class="nav-item" onclick="switchPanel('customers')">Customer Orders</div>
+            <div class="nav-item" onclick="switchPanel('branches')">Branch Sales</div>
+            <div class="nav-item" onclick="switchPanel('revenue')">Total Revenue</div>
+            <div class="nav-item" onclick="switchPanel('inventory')">Inventory</div>
+            <div class="nav-item" onclick="switchPanel('lowstock')">Low Stock Alerts</div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div id="global-low-stock-banner" class="global-alert hidden">
+            <div>⚠ <b>Low Stock</b> Some items are below their minimum threshold.</div>
+            <a onclick="switchPanel('lowstock')">View items</a>
+        </div>
+        <div class="topbar">
+            <h2 id="topbar-title">Dashboard Overview</h2>
+            <button class="outline" onclick="openRestockModal()" style="border-color: var(--primary); color: var(--primary)">+ HQ Transfer</button>
+        </div>
+        
+        <div class="content">
+            <!-- OVERVIEW -->
+            <div id="panel-overview" class="panel active">
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="title">Total Revenue</div>
+                        <div class="val" style="color: var(--success)" id="ov-revenue">KES 0.00</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="title">Total Orders</div>
+                        <div class="val" id="ov-orders">0</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="title">Stock Alerts</div>
+                        <div class="val" style="color: var(--warning)" id="ov-alerts">0</div>
+                    </div>
+                </div>
+                
+                <h3 style="margin-bottom: 16px; font-weight: 600; color: #fff;">Branch Limits</h3>
+                <div class="kpi-grid" id="ov-branch-cards"></div>
+
+                <div class="table-card">
+                    <div class="header">Recent Activity</div>
+                    <table>
+                        <thead><tr><th>ID</th><th>Customer</th><th>Branch</th><th>Drink</th><th>Total</th><th>Time</th></tr></thead>
+                        <tbody id="ov-recent-orders"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- CUSTOMERS -->
+            <div id="panel-customers" class="panel">
+                <div class="table-card">
+                    <div class="header">Customer Logs</div>
+                    <table>
+                        <thead><tr><th>#</th><th>Customer</th><th>Phone</th><th>Branch</th><th>Drink</th><th>Brand</th><th>Qty</th><th>Unit</th><th>Total</th><th>Time</th></tr></thead>
+                        <tbody id="cus-orders"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- BRANCHES -->
+            <div id="panel-branches" class="panel">
+                <div class="table-card">
+                    <div class="header">Sales Performance (By Location)</div>
+                    <table>
+                        <thead><tr><th>ID</th><th>Branch</th><th>City</th><th>Orders</th><th>Revenue (KES)</th></tr></thead>
+                        <tbody id="br-sales"></tbody>
+                        <tfoot style="background: rgba(255,255,255,0.02)">
+                            <tr>
+                                <td colspan="3" style="text-align: right; font-weight: 600; color: var(--text-muted)">Grand Total</td>
+                                <td id="br-tot-orders" style="font-weight: 600; color: #fff;">0</td>
+                                <td id="br-tot-rev" style="font-weight: 700; color: var(--success)">0.00</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- REVENUE -->
+            <div id="panel-revenue" class="panel">
+                <div class="kpi-grid">
+                    <div class="kpi-card" style="grid-column: span 2; padding: 40px;">
+                        <div class="title">Grand Processed Revenue</div>
+                        <div class="val" style="font-size: 3.5rem; color: #fff; letter-spacing: -0.03em" id="rev-grand">KES 0.00</div>
+                    </div>
+                </div>
+                <div class="table-card">
+                    <div class="header">Revenue Split</div>
+                    <table>
+                        <thead><tr><th>Branch</th><th>Revenue</th><th>Contribution Share</th></tr></thead>
+                        <tbody id="rev-breakdown"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- INVENTORY -->
+            <div id="panel-inventory" class="panel">
+                <div class="table-card">
+                    <div class="header">Complete Inventory Ledger</div>
+                    <table>
+                        <thead><tr><th>Branch</th><th>Drink Name</th><th>Quantity</th><th>Threshold</th><th>Health</th></tr></thead>
+                        <tbody id="inv-table"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- LOW STOCK -->
+            <div id="panel-lowstock" class="panel">
+                <div class="table-card">
+                    <div class="header" style="color: var(--warning)">Threshold Violations</div>
+                    <table>
+                        <thead><tr><th>Branch</th><th>Drink Name</th><th>Current Stock</th><th>Min Threshold</th></tr></thead>
+                        <tbody id="low-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="restock-modal">
+        <div class="modal">
+            <div class="modal-head">
+                <span>HQ Stock Transfer</span>
+                <button onclick="closeRestockModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group" style="display: flex; flex-direction: column; gap: 8px;">
+                    <label>Destination Location</label>
+                    <select id="restock-branch">
+                        <option value="2">Nakuru Branch</option>
+                        <option value="3">Mombasa Branch</option>
+                        <option value="4">Kisumu Branch</option>
+                    </select>
+                </div>
+                <div class="input-group" style="display: flex; flex-direction: column; gap: 8px;">
+                    <label>Drink Availability (HQ)</label>
+                    <select id="restock-drink"></select>
+                </div>
+                <div class="input-group" style="display: flex; flex-direction: column; gap: 8px;">
+                    <label>Transfer Volume</label>
+                    <input type="number" id="restock-qty" min="1" value="10">
+                </div>
+                <div id="restock-error" style="color: var(--danger); font-size: 0.9rem; font-weight: 500; display: none;"></div>
+            </div>
+            <div class="modal-foot">
+                <button class="outline" onclick="closeRestockModal()">Cancel</button>
+                <button class="primary outline" style="background: var(--text); color: var(--bg)" onclick="submitRestock()">Transfer Stock</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = {
+            total: () => fetch('/api/reports/total').then(r => r.json()),
+            branches: () => fetch('/api/reports/branches').then(r => r.json()),
+            customers: () => fetch('/api/reports/customers').then(r => r.json()),
+            lowstock: () => fetch('/api/reports/lowstock').then(r => r.json()),
+            stock: () => fetch('/api/stock').then(r => r.json()),
+            hqDrinks: () => fetch('/api/drinks?branch_id=1').then(r => r.json()),
+            restock: (payload) => fetch('/api/restock', { method: 'POST', body: JSON.stringify(payload) }).then(r => r.json())
+        };
+
+        const fm = (n) => typeof n === 'number' ? n.toFixed(2) : "0.00";
+        let currentPanel = 'overview';
+        let refreshInt;
+
+        function startRefresh() {
+            if (refreshInt) clearInterval(refreshInt);
+            refreshInt = setInterval(refreshData, 30000);
+        }
+
+        async function refreshData() {
+            checkLowStock();
+            const MAP = {
+                'overview': loadOverview, 'customers': loadCustomers,
+                'branches': loadBranches, 'revenue': loadRevenue,
+                'inventory': loadInventory, 'lowstock': loadLowStock
+            };
+            if(MAP[currentPanel]) await MAP[currentPanel]();
+        }
+
+        async function checkLowStock() {
+            try {
+                const low = await API.lowstock();
+                const banner = document.getElementById('global-low-stock-banner');
+                low.length > 0 ? banner.classList.remove('hidden') : banner.classList.add('hidden');
+                return low.length;
+            } catch (e) { return 0; }
+        }
+
+        function switchPanel(pid) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + pid).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelector(`.nav-item[onclick="switchPanel('${pid}')"]`).classList.add('active');
+            
+            const titles = {
+                'overview': 'Dashboard Overview', 'customers': 'Customer Logs',
+                'branches': 'Sales Map', 'revenue': 'Revenue Split',
+                'inventory': 'Full Inventory Ledger', 'lowstock': 'Threshold Alerts'
+            };
+            document.getElementById('topbar-title').innerText = titles[pid];
+            currentPanel = pid;
+            refreshData();
+        }
+
+        async function loadOverview() {
+            const [tot, brs, cus, lowC] = await Promise.all([API.total(), API.branches(), API.customers(), checkLowStock()]);
+            
+            document.getElementById('ov-revenue').innerText = 'KES ' + fm(tot.total_revenue);
+            document.getElementById('ov-orders').innerText = tot.total_orders;
+            document.getElementById('ov-alerts').innerText = lowC;
+            
+            document.getElementById('ov-branch-cards').innerHTML = brs.map(b => `
+                <div class="kpi-card" style="padding: 16px;">
+                    <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">${b.name}</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #fff; margin-top: 4px;">KES ${fm(b.total_revenue)}</div>
+                    <div style="color: var(--primary); font-size: 0.85rem; font-weight: 500">${b.total_orders} Orders</div>
+                </div>
+            `).join('');
+
+            document.getElementById('ov-recent-orders').innerHTML = cus.slice(0, 10).map(o => `
+                <tr>
+                    <td style="color: var(--text-muted)">#${o.id}</td><td>${o.customer_name}</td><td>${o.branch_name}</td>
+                    <td>${o.drink_name}</td><td style="font-weight: 600; color: var(--text)">KES ${fm(o.total_price)}</td>
+                    <td style="color: var(--text-muted); font-size: 0.8rem;">${o.order_time}</td>
+                </tr>
+            `).join('') || `<tr><td colspan="6" style="padding: 32px; text-align: center; color: var(--text-muted)">No activity logged.</td></tr>`;
+        }
+
+        async function loadCustomers() {
+            const data = await API.customers();
+            document.getElementById('cus-orders').innerHTML = data.map(o => `
+                <tr>
+                    <td style="color: var(--text-muted)">#${o.id}</td><td><strong>${o.customer_name}</strong></td><td>${o.customer_phone || '-'}</td>
+                    <td>${o.branch_name}</td><td>${o.drink_name}</td><td style="color: var(--text-muted)">${o.brand}</td>
+                    <td style="text-align: center">${o.quantity}</td><td>${fm(o.unit_price)}</td>
+                    <td style="color: var(--success); font-weight: 600;">KES ${fm(o.total_price)}</td>
+                    <td style="color: var(--text-muted); font-size: 0.8rem">${o.order_time}</td>
+                </tr>
+            `).join('') || `<tr><td colspan="10" style="padding: 32px; text-align: center;">No orders yet.</td></tr>`;
+        }
+
+        async function loadBranches() {
+            const data = await API.branches();
+            let sumO = 0; let sumR = 0;
+            document.getElementById('br-sales').innerHTML = data.map(b => {
+                sumO += b.total_orders; sumR += b.total_revenue;
+                return `<tr>
+                    <td>#${b.id}</td><td><strong style="color: #fff">${b.name}</strong></td><td>${b.city}</td>
+                    <td>${b.total_orders}</td><td style="color: var(--success); font-weight: 600;">${fm(b.total_revenue)}</td>
+                </tr>`;
+            }).join('');
+            document.getElementById('br-tot-orders').innerText = sumO;
+            document.getElementById('br-tot-rev').innerText = fm(sumR);
+        }
+
+        async function loadRevenue() {
+            const total = await API.total();
+            const branches = await API.branches();
+            document.getElementById('rev-grand').innerText = 'KES ' + fm(total.total_revenue);
+            
+            document.getElementById('rev-breakdown').innerHTML = branches.map(b => {
+                let pct = total.total_revenue > 0 ? (b.total_revenue / total.total_revenue) * 100 : 0;
+                return `<tr>
+                    <td style="color: #fff; font-weight: 500">${b.name}</td>
+                    <td style="font-weight: 600; color: var(--success)">KES ${fm(b.total_revenue)}</td>
+                    <td style="width: 50%;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="flex: 1; background: var(--surface); height: 6px; border-radius: 4px; overflow: hidden;">
+                                <div style="width: ${pct}%; height: 100%; background: var(--primary);"></div>
+                            </div>
+                            <span style="font-size: 0.85rem; font-weight: 600; min-width: 40px;">${pct.toFixed(1)}%</span>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function loadInventory() {
+            const data = await API.stock();
+            document.getElementById('inv-table').innerHTML = data.map(s => `
+                <tr>
+                    <td>${s.branch_name}</td><td><strong style="color: #fff">${s.drink_name}</strong></td>
+                    <td style="color: ${s.low ? 'var(--danger)' : 'inherit'}">${s.quantity}</td><td style="color: var(--text-muted)">${s.threshold}</td>
+                    <td>
+                        <span style="font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; font-weight: 600; 
+                              background: ${s.low ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)'}; 
+                              color: ${s.low ? 'var(--danger)' : 'var(--success)'}; border: 1px solid ${s.low ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'};">
+                            ${s.low ? 'LOW' : 'OK'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadLowStock() {
+            const data = await API.lowstock();
+            if (data.length === 0) {
+                document.getElementById('low-table').innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--success); padding: 40px; font-weight: 500;">All inventory levels are optimal.</td></tr>`;
+            } else {
+                document.getElementById('low-table').innerHTML = data.map(s => `
+                    <tr>
+                        <td><strong style="color: #fff">${s.branch_name}</strong></td><td>${s.drink_name}</td>
+                        <td style="color: var(--danger); font-weight: 700;">${s.quantity}</td>
+                        <td style="color: var(--text-muted)">${s.threshold}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        async function openRestockModal() {
+            document.getElementById('restock-modal').style.display = 'flex';
+            document.getElementById('restock-error').style.display = 'none';
+            document.getElementById('restock-qty').value = 10;
+            const drinks = await API.hqDrinks();
+            document.getElementById('restock-drink').innerHTML = drinks.map(d => 
+                `<option value="${d.id}">${d.name} (${d.quantity} HQ Storage)</option>`
+            ).join('');
+        }
+
+        function closeRestockModal() { document.getElementById('restock-modal').style.display = 'none'; }
+
+        async function submitRestock() {
+            const payload = {
+                branch_id: parseInt(document.getElementById('restock-branch').value),
+                drink_id: parseInt(document.getElementById('restock-drink').value),
+                quantity: parseInt(document.getElementById('restock-qty').value)
+            };
+            const err = document.getElementById('restock-error');
+            if (!payload.quantity || payload.quantity < 1) {
+                err.innerText = "Invalid volume"; err.style.display = 'block'; return;
+            }
+            try {
+                const res = await API.restock(payload);
+                if (res.error) { err.innerText = res.error; err.style.display = 'block'; } 
+                else { closeRestockModal(); refreshData(); }
+            } catch (e) { err.innerText = "Network issue."; err.style.display = 'block'; }
+        }
+
+        refreshData(); startRefresh();
+    </script>
+</body>
+</html>
