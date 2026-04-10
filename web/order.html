@@ -29,6 +29,10 @@
             <div id="form-section" class="hidden" style="margin-top: 40px;">
                 <h3 class="section-title">3. Delivery Details</h3>
                 <div class="glass form-container fade-in" style="padding: 24px; border-radius: var(--radius);">
+                    <div style="margin-bottom: 24px; padding: 16px; background: rgba(255,255,255,0.03); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                        <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Selected Item</div>
+                        <div id="selected-item-display" style="font-size: 1.25rem; font-weight: 700; color: #fff;"></div>
+                    </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                         <div class="input-group">
                             <label>Full Name</label>
@@ -198,6 +202,9 @@
             renderDrinks();
             const fs = document.getElementById('form-section');
             fs.classList.remove('hidden'); fs.classList.add('fade-in');
+            
+            document.getElementById('selected-item-display').innerText = state.selectedDrink.name;
+            
             updateTotal(); checkSubmitState();
             fs.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
