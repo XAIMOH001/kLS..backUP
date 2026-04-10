@@ -6,6 +6,31 @@
     <title>Admin Dashboard — Drinks POS</title>
     <link rel="stylesheet" href="/global.css">
     <link rel="stylesheet" href="/dashboard.css">
+    <style>
+        .report-view { background: #ffffff; color: #1e293b; border-radius: var(--radius); padding: 40px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .report-view h1 { color: #0f172a; margin: 0 0 8px 0; font-size: 2.2rem; font-weight: 700; letter-spacing: -0.02em; }
+        .report-view p { color: #64748b; margin: 0; font-size: 0.95rem; }
+        .report-view h3 { color: #334155; margin: 0 0 16px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; font-size: 1.25rem; font-weight: 600; }
+        .report-view table { width: 100%; border-collapse: collapse; margin-bottom: 40px; font-size: 0.95rem; text-align: left; }
+        .report-view th { background: #f8fafc; color: #475569; font-weight: 600; padding: 14px 16px; border-top: 1px solid #e2e8f0; border-bottom: 2px solid #e2e8f0; }
+        .report-view td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+        /* Fix the hover highlighting issue specifically for the report tables */
+        .report-view table tbody tr:hover td { background-color: #f8fafc !important; }
+        .report-view .grand-total { font-size: 3rem; font-weight: 700; color: #10b981; letter-spacing: -0.03em; margin-bottom: 40px; }
+        .report-view .text-success { color: #10b981; font-weight: 600; }
+        .report-view .text-danger { color: #ef4444; font-weight: 700; }
+        
+        @media print {
+            .sidebar, .topbar { display: none !important; }
+            .main { padding: 0 !important; margin: 0 !important; width: 100% !important; background: white !important; }
+            .panel { display: block !important; box-shadow: none !important; border: none !important; margin: 0 !important; padding: 0 !important; }
+            .panel:not(.active) { display: none !important; }
+            body { background: white !important; color: black !important; }
+            .report-view { box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
+            button { display: none !important; }
+            #global-low-stock-banner { display: none !important; }
+        }
+    </style>
 </head>
 <body>
     <div class="sidebar">
@@ -17,6 +42,7 @@
             <div class="nav-item" onclick="switchPanel('revenue')">Total Revenue</div>
             <div class="nav-item" onclick="switchPanel('inventory')">Inventory</div>
             <div class="nav-item" onclick="switchPanel('lowstock')">Low Stock Alerts</div>
+            <div class="nav-item" onclick="switchPanel('report')" style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">Generate Report</div>
         </div>
     </div>
 
@@ -127,6 +153,69 @@
                     </table>
                 </div>
             </div>
+
+            <!-- MASTER REPORT GENERATION -->
+            <div id="panel-report" class="panel">
+                <div class="report-view">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px;">
+                        <div>
+                            <h1>System Operations Report</h1>
+                            <p id="report-date"></p>
+                        </div>
+                        <button onclick="window.print()" class="primary" style="padding: 10px 24px; font-weight: 600; border-radius: var(--radius-sm); border: none; cursor: pointer;">Print Document</button>
+                    </div>
+
+                    <div style="page-break-inside: avoid;">
+                        <h3>1 & 2. Customer Orders & Locations</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Customer Identity</th>
+                                    <th>Branch Location</th>
+                                    <th>Items Ordered</th>
+                                    <th>Transaction Value</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rep-customers"></tbody>
+                        </table>
+                    </div>
+
+                    <div style="page-break-inside: avoid;">
+                        <h3>3. Revenue by Branch (incl. Headquarter)</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Branch Location</th>
+                                    <th>Processed Orders</th>
+                                    <th>Total Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rep-branches"></tbody>
+                        </table>
+                    </div>
+
+                    <div style="page-break-inside: avoid;">
+                        <h3>4. Grand Total Revenue</h3>
+                        <div class="grand-total" id="rep-grand">KES 0.00</div>
+                    </div>
+
+                    <div style="page-break-inside: avoid;">
+                        <h3>5. Low Stock Minimum Threshold Signals</h3>
+                        <div id="rep-lowstock-msg" style="margin-bottom: 16px; font-weight: 500; font-size: 1.05rem;"></div>
+                        <table id="rep-lowstock-table">
+                            <thead>
+                                <tr>
+                                    <th>Branch Location</th>
+                                    <th>Drink Name</th>
+                                    <th>Current Stock Level</th>
+                                    <th>Minimum Threshold</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rep-lowstock"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -141,9 +230,6 @@
                 <div class="input-group" style="display: flex; flex-direction: column; gap: 8px;">
                     <label>Destination Location</label>
                     <select id="restock-branch">
-                        <option value="2">Nakuru Branch</option>
-                        <option value="3">Mombasa Branch</option>
-                        <option value="4">Kisumu Branch</option>
                     </select>
                 </div>
                 <div class="input-group" style="display: flex; flex-direction: column; gap: 8px;">
@@ -188,7 +274,8 @@
             const MAP = {
                 'overview': loadOverview, 'customers': loadCustomers,
                 'branches': loadBranches, 'revenue': loadRevenue,
-                'inventory': loadInventory, 'lowstock': loadLowStock
+                'inventory': loadInventory, 'lowstock': loadLowStock,
+                'report': loadReportGen
             };
             if(MAP[currentPanel]) await MAP[currentPanel]();
         }
@@ -212,7 +299,8 @@
             const titles = {
                 'overview': 'Dashboard Overview', 'customers': 'Customer Logs',
                 'branches': 'Sales Map', 'revenue': 'Revenue Split',
-                'inventory': 'Full Inventory Ledger', 'lowstock': 'Threshold Alerts'
+                'inventory': 'Full Inventory Ledger', 'lowstock': 'Threshold Alerts',
+                'report': 'Master Report Generation'
             };
             document.getElementById('topbar-title').innerText = titles[pid];
             currentPanel = pid;
@@ -324,10 +412,61 @@
             }
         }
 
+        async function loadReportGen() {
+            document.getElementById('report-date').innerText = "Generated: " + new Date().toLocaleString();
+            const [tot, brs, cus, low] = await Promise.all([API.total(), API.branches(), API.customers(), API.lowstock()]);
+            
+            document.getElementById('rep-grand').innerText = 'KES ' + fm(tot.total_revenue);
+            
+            document.getElementById('rep-branches').innerHTML = brs.map(b => `
+                <tr>
+                    <td style="font-weight: 600;">${b.name}</td>
+                    <td>${b.total_orders}</td>
+                    <td class="text-success">KES ${fm(b.total_revenue)}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('rep-customers').innerHTML = cus.map(c => `
+                <tr>
+                    <td style="font-weight: 500;">${c.customer_name} <span style="color: #64748b; font-weight: 400; font-size: 0.9em;">${c.customer_phone ? c.customer_phone : ''}</span></td>
+                    <td>${c.branch_name}</td>
+                    <td>${c.quantity}x ${c.drink_name}</td>
+                    <td class="text-success" style="font-weight: 600;">KES ${fm(c.total_price)}</td>
+                </tr>
+            `).join('') || `<tr><td colspan="4" style="text-align: center; color: #64748b; padding: 32px;">No orders logged.</td></tr>`;
+
+            const lmsg = document.getElementById('rep-lowstock-msg');
+            const ltbl = document.getElementById('rep-lowstock-table');
+            if (low.length === 0) {
+                lmsg.innerText = "✅ All stock levels are healthy. No threshold violations.";
+                lmsg.className = "text-success";
+                ltbl.style.display = "none";
+            } else {
+                lmsg.innerText = `⚠ WARNING: ${low.length} item(s) have fallen below their minimum threshold!`;
+                lmsg.className = "text-danger";
+                ltbl.style.display = "table";
+                document.getElementById('rep-lowstock').innerHTML = low.map(l => `
+                    <tr>
+                        <td style="font-weight: 500;">${l.branch_name}</td>
+                        <td>${l.drink_name}</td>
+                        <td class="text-danger">${l.quantity}</td>
+                        <td style="color: #64748b;">${l.threshold}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
         async function openRestockModal() {
             document.getElementById('restock-modal').style.display = 'flex';
             document.getElementById('restock-error').style.display = 'none';
             document.getElementById('restock-qty').value = 10;
+            
+            const branches = await API.branches();
+            document.getElementById('restock-branch').innerHTML = branches
+                .filter(b => b.id !== 1)
+                .map(b => `<option value="${b.id}">${b.name}</option>`)
+                .join('');
+                
             const drinks = await API.hqDrinks();
             document.getElementById('restock-drink').innerHTML = drinks.map(d => 
                 `<option value="${d.id}">${d.name} (${d.quantity} HQ Storage)</option>`

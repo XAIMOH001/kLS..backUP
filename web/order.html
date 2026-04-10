@@ -19,7 +19,10 @@
             <div class="branch-grid fade-in" id="branches" style="animation-delay: 0.15s"></div>
 
             <div id="drinks-section" class="hidden" style="margin-top: 40px;">
-                <h3 class="section-title">2. Drinks Selection</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 class="section-title" style="margin-bottom: 0;">2. Drinks Selection</h3>
+                    <button id="hq-restock-btn" class="primary outline hidden" onclick="openRestockModal()" style="padding: 6px 12px; font-size: 0.85rem; border: 1px solid var(--primary); color: var(--primary); background: transparent; border-radius: var(--radius-sm); cursor: pointer;">+ Restock Branches</button>
+                </div>
                 <div class="drinks-grid" id="drinks"></div>
             </div>
 
@@ -82,6 +85,36 @@
             <div id="r-warning" class="msg-banner warning hidden">⚠ Low stock alert for the selected location.</div>
             <button class="primary" style="width: 100%; max-width: 300px;" onclick="resetOrder()">Place New Order</button>
         </div>
+
+        <!-- Restock Modal -->
+        <div class="modal-overlay" id="restock-modal">
+            <div class="modal">
+                <div class="modal-head">
+                    <span>HQ Stock Transfer</span>
+                    <button onclick="closeRestockModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group" style="display: flex; flex-direction: column; gap: 8px;">
+                        <label>Destination Location</label>
+                        <select id="restock-branch"></select>
+                    </div>
+                    <div class="input-group" style="display: flex; flex-direction: column; gap: 8px;">
+                        <label>Drink Availability (HQ)</label>
+                        <select id="restock-drink"></select>
+                    </div>
+                    <div class="input-group" style="display: flex; flex-direction: column; gap: 8px;">
+                        <label>Transfer Volume</label>
+                        <input type="number" id="restock-qty" min="1" value="10">
+                    </div>
+                    <div id="restock-error" style="color: var(--danger); font-size: 0.9rem; font-weight: 500; display: none;"></div>
+                    <div id="restock-success" style="color: var(--success); font-size: 0.9rem; font-weight: 500; display: none;">Transfer complete!</div>
+                </div>
+                <div class="modal-foot">
+                    <button class="outline" onclick="closeRestockModal()" style="padding: 8px 16px; border: 1px solid var(--border); background: transparent; color: #fff; border-radius: var(--radius-sm); cursor: pointer;">Cancel</button>
+                    <button class="primary outline" style="background: var(--text); color: var(--bg); padding: 8px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; border: none;" onclick="submitRestock()">Transfer Stock</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -112,6 +145,13 @@
             state.selectedDrink = null; state.qty = 1;
             renderBranches();
             
+            const btn = document.getElementById('hq-restock-btn');
+            if (id === 1 && btn) {
+                btn.classList.remove('hidden');
+            } else if (btn) {
+                btn.classList.add('hidden');
+            }
+
             const ds = document.getElementById('drinks-section');
             ds.classList.remove('hidden'); ds.classList.add('fade-in');
             document.getElementById('form-section').classList.add('hidden');
@@ -224,6 +264,62 @@
             document.getElementById('view-order').classList.remove('hidden');
             selectBranch(state.selectedBranch.id); // re-fetch stock
             document.getElementById('submit-btn').innerText = 'Place Order';
+        }
+
+        async function openRestockModal() {
+            document.getElementById('restock-modal').style.display = 'flex';
+            document.getElementById('restock-error').style.display = 'none';
+            document.getElementById('restock-success').style.display = 'none';
+            document.getElementById('restock-qty').value = 10;
+            
+            document.getElementById('restock-branch').innerHTML = state.branches
+                .filter(b => b.id !== 1)
+                .map(b => `<option value="${b.id}">${b.name}</option>`)
+                .join('');
+            
+            document.getElementById('restock-drink').innerHTML = state.drinks.map(d => 
+                `<option value="${d.id}">${d.name} (${d.quantity} HQ Storage)</option>`
+            ).join('');
+        }
+
+        function closeRestockModal() { 
+            document.getElementById('restock-modal').style.display = 'none'; 
+            selectBranch(1);
+        }
+
+        async function submitRestock() {
+            const payload = {
+                branch_id: parseInt(document.getElementById('restock-branch').value),
+                drink_id: parseInt(document.getElementById('restock-drink').value),
+                quantity: parseInt(document.getElementById('restock-qty').value)
+            };
+            const err = document.getElementById('restock-error');
+            const succ = document.getElementById('restock-success');
+            err.style.display = 'none';
+            succ.style.display = 'none';
+            
+            if (!payload.quantity || payload.quantity < 1) {
+                err.innerText = "Invalid volume"; err.style.display = 'block'; return;
+            }
+            try {
+                const res = await fetch('/api/restock', { method: 'POST', body: JSON.stringify(payload) });
+                const data = await res.json();
+                if (data.error) { 
+                    err.innerText = data.error; 
+                    err.style.display = 'block'; 
+                } else { 
+                    succ.style.display = 'block';
+                    const dr = state.drinks.find(d => d.id === payload.drink_id);
+                    if (dr) dr.quantity -= payload.quantity;
+                    document.getElementById('restock-drink').innerHTML = state.drinks.map(d => 
+                        `<option value="${d.id}">${d.name} (${d.quantity} HQ Storage)</option>`
+                    ).join('');
+                    setTimeout(closeRestockModal, 1000);
+                }
+            } catch (e) { 
+                err.innerText = "Network issue."; 
+                err.style.display = 'block'; 
+            }
         }
 
         init();
