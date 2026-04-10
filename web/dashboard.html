@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard — Drinks POS</title>
+    <title>Admin Dashboard — Kamnyweso</title>
     <link rel="stylesheet" href="/global.css">
     <link rel="stylesheet" href="/dashboard.css">
     <style>
@@ -34,7 +34,7 @@
 </head>
 <body>
     <div class="sidebar">
-        <div class="logo">Drinks POS</div>
+        <div class="logo">Kamnyweso</div>
         <div class="nav">
             <div class="nav-item active" onclick="switchPanel('overview')">Overview</div>
             <div class="nav-item" onclick="switchPanel('customers')">Customer Orders</div>
@@ -438,7 +438,7 @@
             const lmsg = document.getElementById('rep-lowstock-msg');
             const ltbl = document.getElementById('rep-lowstock-table');
             if (low.length === 0) {
-                lmsg.innerText = "✅ All stock levels are healthy. No threshold violations.";
+                lmsg.innerText = " All stock levels are healthy. No threshold violations.";
                 lmsg.className = "text-success";
                 ltbl.style.display = "none";
             } else {
