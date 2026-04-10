@@ -41,11 +41,14 @@
                     </div>
                     
                     <div class="input-group" style="margin-top: 24px;">
-                        <label>Quantity</label>
-                        <div class="stepper">
-                            <button onclick="updateQty(-1)">−</button>
-                            <span id="qty">1</span>
-                            <button onclick="updateQty(1)">+</button>
+                        <label style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Quantity</span>
+                            <span id="qty-remaining" style="color: var(--text-muted); font-size: 0.85em; font-weight: normal;"></span>
+                        </label>
+                        <div class="stepper" style="display: flex; gap: 8px; align-items: center;">
+                            <button onclick="updateQty(-1)" style="padding: 8px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer;">−</button>
+                            <input type="number" id="qty" value="1" min="1" oninput="setQty(this.value)" style="width: 80px; text-align: center; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text);">
+                            <button onclick="updateQty(1)" style="padding: 8px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer;">+</button>
                         </div>
                     </div>
 
@@ -201,17 +204,27 @@
 
         function updateQty(delta) {
             if (!state.selectedDrink) return;
+            setQty(state.qty + delta);
+        }
+
+        function setQty(val) {
+            if (!state.selectedDrink) return;
+            let newQty = parseInt(val);
+            if (isNaN(newQty)) return;
             const limit = state.selectedDrink.quantity;
-            if (state.qty + delta >= 1 && state.qty + delta <= limit) {
-                state.qty += delta;
-                updateTotal();
-            }
+            if (newQty < 1) newQty = 1;
+            if (newQty > limit) newQty = limit;
+            state.qty = newQty;
+            updateTotal();
         }
 
         function updateTotal() {
-            document.getElementById('qty').innerText = state.qty;
+            document.getElementById('qty').value = state.qty;
             if (state.selectedDrink) {
                 document.getElementById('total-display').innerText = (state.selectedDrink.price * state.qty).toFixed(2);
+                document.getElementById('qty-remaining').innerText = `Remaining: ${state.selectedDrink.quantity - state.qty}`;
+            } else {
+                document.getElementById('qty-remaining').innerText = '';
             }
         }
 
